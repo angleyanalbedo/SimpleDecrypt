@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SimpleCrypt</title>
+  <style>
+    :root { color-scheme: dark; --bg:#10141c; --panel:#1a2130; --text:#edf2f7; --muted:#9aa8bb; --accent:#65b7ff; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:16px/1.6 system-ui,-apple-system,Segoe UI,sans-serif; color:var(--text); background:linear-gradient(135deg,#10141c,#172235); }
+    main { max-width:900px; margin:auto; padding:72px 24px; }
+    .hero { padding:48px; border:1px solid #2a3a52; border-radius:24px; background:rgba(26,33,48,.88); box-shadow:0 24px 70px #0005; }
+    h1 { margin:0 0 8px; font-size:clamp(42px,8vw,76px); letter-spacing:-3px; }
+    h2 { margin-top:42px; }
+    p, li { color:var(--muted); }
+    .tag { color:var(--accent); font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+    .buttons { display:flex; flex-wrap:wrap; gap:12px; margin-top:28px; }
+    a.button { display:inline-block; padding:11px 18px; border-radius:10px; color:#07111d; background:var(--accent); font-weight:700; text-decoration:none; }
+    a.secondary { color:var(--text); background:#2b374a; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; margin-top:20px; }
+    .card { padding:18px; border-radius:14px; background:var(--panel); border:1px solid #2a3a52; }
+    .card strong { display:block; margin-bottom:5px; }
+    code { padding:2px 6px; border-radius:5px; color:#c8e7ff; background:#0c1119; }
+    footer { margin-top:36px; color:var(--muted); font-size:14px; }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <div class="tag">Windows file encryption</div>
+      <h1>SimpleCrypt</h1>
+      <p>A small, focused GUI tool for encrypting and decrypting files and folders with standard .NET symmetric algorithms.</p>
+      <div class="buttons">
+        <a class="button" href="https://github.com/angleyanalbedo/SimpleDecrypt/releases/latest">Download latest release</a>
+        <a class="button secondary" href="https://github.com/angleyanalbedo/SimpleDecrypt">View source</a>
+      </div>
+
+      <h2>Supported algorithms</h2>
+      <div class="grid">
+        <div class="card"><strong>AES-CBC</strong><span>16, 24, or 32-byte Key · 16-byte IV</span></div>
+        <div class="card"><strong>DES-CBC</strong><span>8-byte Key · 8-byte IV</span></div>
+        <div class="card"><strong>TripleDES-CBC</strong><span>16 or 24-byte Key · 8-byte IV</span></div>
+        <div class="card"><strong>RC2-CBC</strong><span>5–16-byte Key · 8-byte IV</span></div>
+      </div>
+
+      <h2>Highlights</h2>
+      <ul>
+        <li>Drag and drop files or folders.</li>
+        <li>Process folders recursively while preserving their structure.</li>
+        <li>No custom file header, archive format, or automatic algorithm detection.</li>
+        <li>Plain text and hexadecimal Key/IV input.</li>
+      </ul>
+
+      <h2>Key and IV format</h2>
+      <p>Plain text is converted to UTF-8 bytes. Hexadecimal values may use <code>hex:</code> or <code>0x</code>; spaces and hyphens are allowed.</p>
+      <p><code>0x0011 2233 4455 6677</code></p>
+
+      <footer>SimpleCrypt targets .NET Framework 4.8 and is intended for Windows.</footer>
+    </section>
+  </main>
+</body>
+</html>
