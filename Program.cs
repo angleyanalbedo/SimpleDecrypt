@@ -41,7 +41,6 @@ namespace SimpleDecrypt
         private readonly ProgressBar progress = new ProgressBar { Dock = DockStyle.Fill, Minimum = 0, Maximum = 100 };
         private readonly Label status = new Label { AutoSize = true, Text = "Drop a file or folder here." };
         private readonly Button runButton = new Button { Text = "Process", Width = 100, Height = 30 };
-        private readonly Button helpButton = new Button { Text = "Help", Width = 70, Height = 26 };
 
         public MainForm()
         {
@@ -68,7 +67,6 @@ namespace SimpleDecrypt
             folderMode.CheckedChanged += delegate { UpdateOutputSuggestion(); UpdateModeControls(); };
             algorithm.SelectedIndexChanged += delegate { UpdateParameterHints(); };
             runButton.Click += async delegate { await RunAsync(); };
-            helpButton.Click += delegate { ShowHelp(); };
             DragEnter += OnDragEnter;
             DragDrop += OnDragDrop;
 
@@ -79,11 +77,16 @@ namespace SimpleDecrypt
             for (var i = 0; i < 11; i++) layout.RowStyles.Add(new RowStyle(SizeType.Absolute, i == 1 ? 48 : 34));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-            var topBar = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true };
-            topBar.Controls.Add(new Label { Text = "File Encryptor", Font = new System.Drawing.Font(Font, System.Drawing.FontStyle.Bold), AutoSize = true, Margin = new Padding(0, 5, 12, 0) });
-            topBar.Controls.Add(helpButton);
-            layout.Controls.Add(topBar, 0, 0);
-            layout.SetColumnSpan(topBar, 3);
+            var toolbar = new ToolStrip { Dock = DockStyle.Fill, GripStyle = ToolStripGripStyle.Hidden, RenderMode = ToolStripRenderMode.System };
+            toolbar.Items.Add(new ToolStripLabel { Text = "File Encryptor", Font = new System.Drawing.Font(Font, System.Drawing.FontStyle.Bold) });
+            toolbar.Items.Add(new ToolStripSeparator());
+            toolbar.Items.Add(new ToolStripLabel { Text = "SimpleCrypt" });
+            toolbar.Items.Add(new ToolStripSeparator { Alignment = ToolStripItemAlignment.Right });
+            var helpButton = new ToolStripButton { Text = "Help", DisplayStyle = ToolStripItemDisplayStyle.Text, Alignment = ToolStripItemAlignment.Right };
+            helpButton.Click += delegate { ShowHelp(); };
+            toolbar.Items.Add(helpButton);
+            layout.Controls.Add(toolbar, 0, 0);
+            layout.SetColumnSpan(toolbar, 3);
 
             var drop = new Label { Text = "Drop a file or folder here", TextAlign = System.Drawing.ContentAlignment.MiddleCenter, Dock = DockStyle.Fill, BorderStyle = BorderStyle.FixedSingle, BackColor = System.Drawing.Color.AliceBlue, AllowDrop = true };
             drop.DragEnter += OnDragEnter;
