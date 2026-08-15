@@ -1,0 +1,46 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build Windows release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.x
+
+      - name: Build
+        run: dotnet build SimpleDecrypt.csproj --configuration Release
+
+      - name: Create package
+        shell: pwsh
+        run: |
+          $package = Join-Path $env:RUNNER_TEMP "SimpleDecrypt-$env:GITHUB_REF_NAME"
+          New-Item -ItemType Directory -Path $package -Force | Out-Null
+          Copy-Item "bin\Release\net48\SimpleDecrypt.exe" $package
+          Copy-Item "README.md" $package
+          $zip = Join-Path $env:RUNNER_TEMP "SimpleDecrypt-$env:GITHUB_REF_NAME-win.zip"
+          Compress-Archive -Path "$package\*" -DestinationPath $zip -Force
+          "PACKAGE=$zip" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Create GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create $env:GITHUB_REF_NAME $env:PACKAGE `
+            --title $env:GITHUB_REF_NAME `
+            --generate-notes
