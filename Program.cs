@@ -24,8 +24,8 @@ namespace SimpleDecrypt
     {
         private readonly TextBox input = new TextBox();
         private readonly TextBox output = new TextBox();
-        private readonly TextBox key = new TextBox();
-        private readonly TextBox iv = new TextBox();
+        private readonly HistoryBox key = new HistoryBox();
+        private readonly HistoryBox iv = new HistoryBox();
         private readonly Label keyLabel = new Label { AutoSize = true, Anchor = AnchorStyles.Left };
         private readonly Label ivLabel = new Label { AutoSize = true, Anchor = AnchorStyles.Left, Text = "IV:" };
         private readonly Label keyHint = new Label { AutoSize = true, Anchor = AnchorStyles.Left };
@@ -38,9 +38,12 @@ namespace SimpleDecrypt
         private readonly RadioButton folderMode = new RadioButton { Text = "Folder", AutoSize = true };
         private readonly CheckBox includeSubfolders = new CheckBox { Text = "Include subfolders", Checked = true, AutoSize = true };
         private readonly CheckBox overwrite = new CheckBox { Text = "Overwrite existing files", AutoSize = true };
+        private readonly CheckBox rememberSecrets = new CheckBox { Text = "Remember Key and IV", Checked = true, AutoSize = true };
         private readonly ProgressBar progress = new ProgressBar { Dock = DockStyle.Fill, Minimum = 0, Maximum = 100 };
         private readonly Label status = new Label { AutoSize = true, Text = "Drop a file or folder here." };
         private readonly Button runButton = new Button { Text = "Process", Width = 100, Height = 30 };
+        private readonly Dictionary<string, Tuple<string, string>> savedParameters = new Dictionary<string, Tuple<string, string>>(StringComparer.OrdinalIgnoreCase);
+        private readonly string settingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SimpleCrypt", "settings.dat");
 
         public MainForm()
         {
@@ -104,6 +107,7 @@ namespace SimpleDecrypt
             var options = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true };
             options.Controls.Add(includeSubfolders);
             options.Controls.Add(overwrite);
+            options.Controls.Add(rememberSecrets);
             layout.Controls.Add(options, 1, 9);
             layout.SetColumnSpan(options, 2);
 
@@ -116,6 +120,7 @@ namespace SimpleDecrypt
             layout.Controls.Add(status, 2, 11);
 
             Controls.Add(layout);
+            LoadParameters();
             UpdateParameterHints();
             UpdateModeControls();
         }
@@ -227,6 +232,21 @@ namespace SimpleDecrypt
                 keySize.Items.AddRange(new object[] { "40-bit", "64-bit", "128-bit" });
             }
             keySize.SelectedIndex = 0;
+            Tuple<string, string> saved;
+            if (savedParameters.TryGetValue(name ?? string.Empty, out saved))
+            {
+                key.Text = saved.Item1;
+                iv.Text = saved.Item2;
+                key.SetHistory(new[] { saved.Item1 });
+                iv.SetHistory(new[] { saved.Item2 });
+            }
+            else
+            {
+                key.Text = string.Empty;
+                iv.Text = string.Empty;
+                key.SetHistory(new string[0]);
+                iv.SetHistory(new string[0]);
+            }
         }
 
         private void OnDragEnter(object sender, DragEventArgs e)
@@ -305,6 +325,7 @@ namespace SimpleDecrypt
                 var keyBytes = ParseBytes(key.Text, "Key");
                 var ivBytes = ParseBytes(iv.Text, "IV");
                 ValidateKeyAndIv(algorithmName, keyBytes, ivBytes);
+                if (rememberSecrets.Checked) SaveParameters(algorithmName, key.Text, iv.Text);
 
                 runButton.Enabled = false;
                 progress.Value = 0;
@@ -434,6 +455,116 @@ namespace SimpleDecrypt
                 return Enumerable.Range(0, hex.Length / 2).Select(i => Convert.ToByte(hex.Substring(i * 2, 2), 16)).ToArray();
             }
             return Encoding.UTF8.GetBytes(text);
+        }
+
+        private void LoadParameters()
+        {
+            try
+            {
+                if (!File.Exists(settingsPath)) return;
+                var protectedData = File.ReadAllBytes(settingsPath);
+                var data = ProtectedData.Unprotect(protectedData, null, DataProtectionScope.CurrentUser);
+                using (var stream = new MemoryStream(data))
+                using (var reader = new BinaryReader(stream, Encoding.UTF8))
+                {
+                    var count = reader.ReadInt32();
+                    for (var i = 0; i < count; i++)
+                        savedParameters[reader.ReadString()] = Tuple.Create(reader.ReadString(), reader.ReadString());
+                }
+            }
+            catch
+            {
+                savedParameters.Clear();
+            }
+        }
+
+        private void SaveParameters(string algorithmName, string keyValue, string ivValue)
+        {
+            savedParameters[algorithmName] = Tuple.Create(keyValue, ivValue);
+            key.SetHistory(new[] { keyValue });
+            iv.SetHistory(new[] { ivValue });
+            try
+            {
+                var directory = Path.GetDirectoryName(settingsPath);
+                Directory.CreateDirectory(directory);
+                byte[] data;
+                using (var stream = new MemoryStream())
+                using (var writer = new BinaryWriter(stream, Encoding.UTF8))
+                {
+                    writer.Write(savedParameters.Count);
+                    foreach (var pair in savedParameters)
+                    {
+                        writer.Write(pair.Key);
+                        writer.Write(pair.Value.Item1);
+                        writer.Write(pair.Value.Item2);
+                    }
+                    writer.Flush();
+                    data = stream.ToArray();
+                }
+                File.WriteAllBytes(settingsPath, ProtectedData.Protect(data, null, DataProtectionScope.CurrentUser));
+            }
+            catch
+            {
+                // Encryption/decryption should still work if settings cannot be saved.
+            }
+        }
+    }
+
+    internal sealed class HistoryBox : UserControl
+    {
+        private readonly TextBox editor = new TextBox { Dock = DockStyle.Fill };
+        private readonly Button dropDown = new Button { Text = "▼", Dock = DockStyle.Right, Width = 28, TabStop = false };
+        private readonly List<string> history = new List<string>();
+
+        public HistoryBox()
+        {
+            Height = editor.PreferredHeight;
+            Padding = new Padding(0);
+            Controls.Add(editor);
+            Controls.Add(dropDown);
+            dropDown.Click += delegate { ShowHistory(); };
+        }
+
+        public new string Text
+        {
+            get { return editor.Text; }
+            set { editor.Text = value ?? string.Empty; }
+        }
+
+        public bool UseSystemPasswordChar
+        {
+            get { return editor.UseSystemPasswordChar; }
+            set { editor.UseSystemPasswordChar = value; }
+        }
+
+        public void SetHistory(IEnumerable<string> values)
+        {
+            history.Clear();
+            foreach (var value in values ?? Enumerable.Empty<string>())
+                if (!string.IsNullOrWhiteSpace(value) && !history.Contains(value)) history.Add(value);
+        }
+
+        private void ShowHistory()
+        {
+            var menu = new ContextMenuStrip();
+            if (history.Count == 0)
+            {
+                menu.Items.Add(new ToolStripMenuItem("No saved values") { Enabled = false });
+            }
+            else
+            {
+                foreach (var value in history)
+                {
+                    var item = new ToolStripMenuItem(value);
+                    item.Click += delegate { Text = value; };
+                    menu.Items.Add(item);
+                }
+                menu.Items.Add(new ToolStripSeparator());
+                var clear = new ToolStripMenuItem("Clear history");
+                clear.Click += delegate { history.Clear(); };
+                menu.Items.Add(clear);
+            }
+            menu.Show(dropDown, 0, dropDown.Height);
         }
     }
 }

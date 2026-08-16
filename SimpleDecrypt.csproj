@@ -9,4 +9,7 @@
     <AssemblyName>SimpleDecrypt</AssemblyName>
     <RootNamespace>SimpleDecrypt</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System.Security" />
+  </ItemGroup>
 </Project>
