@@ -41,6 +41,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create $env:GITHUB_REF_NAME $env:PACKAGE `
+          gh release create $env:GITHUB_REF_NAME `
             --title $env:GITHUB_REF_NAME `
             --generate-notes
+          gh release upload $env:GITHUB_REF_NAME $env:PACKAGE --clobber
