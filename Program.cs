@@ -185,9 +185,12 @@ namespace SimpleDecrypt
                 "   Example: my-secret-key\n" +
                 "   The text is converted to UTF-8 bytes. The byte length must match the algorithm.\n\n" +
                 "2. Hexadecimal\n" +
-                "   Prefix with hex: or 0x. Spaces and hyphens are allowed.\n" +
+                "   Prefix with hex: or 0x. Spaces and hyphens are optional; grouping is not required.\n" +
                 "   Example: hex:00112233445566778899AABBCCDDEEFF\n" +
-                "   Example: 0x0011 2233 4455 6677 8899 AABB CCDD EEFF\n\n" +
+                "   Example: 0x00112233445566778899AABBCCDDEEFF\n\n" +
+                "3. Base64\n" +
+                "   Prefix with base64:.\n" +
+                "   Example: base64:ABEiM0RVZneImaq7zN3u/w==\n\n" +
                 "Required lengths\n" +
                 "AES-CBC: 16, 24 or 32-byte Key; 16-byte IV\n" +
                 "DES-CBC: 8-byte Key; 8-byte IV\n" +
@@ -446,6 +449,12 @@ namespace SimpleDecrypt
         {
             if (string.IsNullOrWhiteSpace(value)) throw new InvalidOperationException(name + " cannot be empty.");
             var text = value.Trim();
+            if (text.StartsWith("base64:", StringComparison.OrdinalIgnoreCase))
+            {
+                try { return Convert.FromBase64String(text.Substring(7).Trim()); }
+                catch (FormatException) { throw new InvalidOperationException(name + " has an invalid Base64 value."); }
+            }
+
             var isHex = text.StartsWith("hex:", StringComparison.OrdinalIgnoreCase) || text.StartsWith("0x", StringComparison.OrdinalIgnoreCase);
             if (isHex)
             {
@@ -513,15 +522,26 @@ namespace SimpleDecrypt
     internal sealed class HistoryBox : UserControl
     {
         private readonly TextBox editor = new TextBox { Dock = DockStyle.Fill };
+        private readonly Button showButton = new Button { Text = "◉", Dock = DockStyle.Right, Width = 28, TabStop = false };
         private readonly Button dropDown = new Button { Text = "▼", Dock = DockStyle.Right, Width = 28, TabStop = false };
         private readonly List<string> history = new List<string>();
+        private bool showValue;
 
         public HistoryBox()
         {
             Height = editor.PreferredHeight;
             Padding = new Padding(0);
             Controls.Add(editor);
+            Controls.Add(showButton);
             Controls.Add(dropDown);
+            showButton.Font = new System.Drawing.Font("Segoe UI Symbol", 9F);
+            new ToolTip().SetToolTip(showButton, "Show / hide value");
+            showButton.Click += delegate
+            {
+                showValue = !showValue;
+                editor.UseSystemPasswordChar = !showValue;
+                showButton.Text = showValue ? "○" : "◉";
+            };
             dropDown.Click += delegate { ShowHistory(); };
         }
 
@@ -534,7 +554,7 @@ namespace SimpleDecrypt
         public bool UseSystemPasswordChar
         {
             get { return editor.UseSystemPasswordChar; }
-            set { editor.UseSystemPasswordChar = value; }
+            set { showValue = !value; editor.UseSystemPasswordChar = value; }
         }
 
         public void SetHistory(IEnumerable<string> values)

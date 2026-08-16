@@ -36,11 +36,17 @@ Plain text is converted to UTF-8 bytes:
 my-secret-key
 ```
 
-Hexadecimal values can use either `hex:` or `0x`. Spaces and hyphens are accepted:
+Hexadecimal values can use either `hex:` or `0x`. Spaces and hyphens are optional; grouping is not required:
 
 ```text
 hex:00112233445566778899AABBCCDDEEFF
 0x0011 2233 4455 6677 8899 AABB CCDD EEFF
+```
+
+Base64 values can use the `base64:` prefix:
+
+```text
+base64:ABEiM0RVZneImaq7zN3u/w==
 ```
 
 Required sizes:
