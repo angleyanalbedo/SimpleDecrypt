@@ -26,6 +26,7 @@ jobs:
         run: dotnet build SimpleDecrypt.csproj --configuration Release
 
       - name: Create package
+        id: package
         shell: pwsh
         run: |
           $package = Join-Path $env:RUNNER_TEMP "SimpleDecrypt-$env:GITHUB_REF_NAME"
@@ -34,13 +35,13 @@ jobs:
           Copy-Item "README.md" $package
           $zip = Join-Path $env:RUNNER_TEMP "SimpleDecrypt-$env:GITHUB_REF_NAME-win.zip"
           Compress-Archive -Path "$package\*" -DestinationPath $zip -Force
-          "PACKAGE=$zip" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "zip=$zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: SimpleDecrypt-${{ github.ref_name }}
-          path: ${{ env.PACKAGE }}
+          path: ${{ steps.package.outputs.zip }}
 
       - name: Create GitHub Release and upload package
         uses: softprops/action-gh-release@v2
@@ -48,4 +49,4 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           generate_release_notes: true
-          files: ${{ env.PACKAGE }}
+          files: ${{ steps.package.outputs.zip }}
